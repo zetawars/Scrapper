@@ -23,3 +23,29 @@ c:\users\abdul rouf\documents\visual studio 2017\Projects\DataExtractor\DataExtr
 c:\Users\Abdul Rouf\Documents\Visual Studio 2017\Projects\DataExtractor\DataExtractor\bin\Newtonsoft.Json.dll
 c:\Users\Abdul Rouf\Documents\Visual Studio 2017\Projects\DataExtractor\DataExtractor\bin\Newtonsoft.Json.pdb
 c:\Users\Abdul Rouf\Documents\Visual Studio 2017\Projects\DataExtractor\DataExtractor\bin\Newtonsoft.Json.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\DataExtractor.dll.config
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\DataExtractor.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\DataExtractor.pdb
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\Microsoft.Web.Infrastructure.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\Newtonsoft.Json.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Helpers.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Mvc.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Razor.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.Deployment.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.Razor.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\Newtonsoft.Json.pdb
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\Newtonsoft.Json.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Razor.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.Deployment.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.Razor.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Helpers.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Mvc.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csprojResolveAssemblyReference.cache
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csproj.CoreCompileInputs.cache
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csproj.CopyComplete
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.pdb
