@@ -47,9 +47,41 @@ namespace DataExtractor.Controllers
 
     }
 
+
+    public class RequiredFormatUnesco
+    {
+        public string Lat { get; set; }
+        public string Long { get; set; }
+        public string Ref { get; set; }
+        public string Property { get; set; }
+        public string Name { get; set; }
+    }
+
+
     public class RootObject
     {
         public List<Place> places { get; set; }
+    }
+
+
+
+    public class CENTROIDRESULT
+    {
+        public double LONGITUDE { get; set; }
+        public double LATITUDE { get; set; }
+    }
+
+    public class QUERYRESULT
+    {
+        public List<string> COLUMNS { get; set; }
+        public List<List<object>> DATA { get; set; }
+    }
+
+    public class RootObject2
+    {
+        public CENTROIDRESULT CENTROIDRESULT { get; set; }
+        public string HTMLRESULT { get; set; }
+        public QUERYRESULT QUERYRESULT { get; set; }
     }
 
 
@@ -59,11 +91,90 @@ namespace DataExtractor.Controllers
         public async Task<ActionResult> Index()
         {
 
-            Hydro();
+            unesco();
             return View();
 
 
         }
+
+
+        public async void unesco()
+        {
+            string result = string.Empty;
+            List<string> HtmlLinks = new List<string>();
+            List<string> Links = new List<string>();
+            List<RequiredFormat> format = new List<RequiredFormat>();
+
+            RootObject2 items = new RootObject2();
+
+            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/unesco.json")))
+            {
+                string json = r.ReadToEnd();
+                items = JsonConvert.DeserializeObject<RootObject2>(json);
+            }
+            //3045 - duplicate
+            //items.places = items.places.Skip(4783).ToList();
+            var k = items.QUERYRESULT.DATA.Select(x => x[4]).ToList();
+            foreach (var element in items.QUERYRESULT.DATA)
+            {
+                var ElementID = element[4];
+
+                RequiredFormatUnesco Obj = new RequiredFormatUnesco();
+                //[-54.5947222200,158.8955556000,0,2,629,"Macquarie Island"]
+                Obj.Lat = element[0].ToString();
+                Obj.Long = element[1].ToString();
+                Obj.Name = element[5].ToString();
+                Obj.Ref = element[4].ToString();
+                string URL = "https://whc.unesco.org/en/list/" + ElementID;// + element.html.Split('"')[1];
+
+                HttpClient _HttpClient = new HttpClient();
+                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
+                {
+                    request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                    request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                    request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                    request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                    {
+                        response.EnsureSuccessStatusCode();
+                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                        using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                        using (var streamReader = new StreamReader(decompressedStream))
+                        {
+                            result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                        }
+                    }
+                }
+
+
+                string Property = string.Empty;
+                try
+                {
+                    Property = result.Split(new string[] { "<strong>Property :</strong>" }, StringSplitOptions.None).Last();
+                    var index = Property.IndexOf("<");
+                    Property = Property.Substring(1, index - 1).Trim();
+
+                }
+                catch (Exception ex)
+                {
+                    Property = "";
+                }
+
+                using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
+                {
+                    con.Open();
+                    string query = $"INSERT INTO Unesco (Name,Property, Lat, Long, Ref) VALUES ('{Obj.Name.Replace("'", "''")}','{Property.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Long.Replace("'", "''")}','{Obj.Ref.Replace("'", "''")}')";
+                    SqlCommand cmd = new SqlCommand(query, con);
+                    cmd.ExecuteNonQuery();
+                    con.Close();
+                }
+
+                //Thread.Sleep(3000);
+            }
+        }
+
+
 
         public async void Hydro()
         {
