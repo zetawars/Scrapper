@@ -13,9 +13,48 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
 using System.Xml.Linq;
+using Dapper;
+using HtmlAgilityPack;
+using Fizzler.Systems.HtmlAgilityPack;
 
 namespace DataExtractor.Controllers
 {
+
+    public class Wine
+    {
+
+        public string Key { get; set; }
+        public string Winery_Number { get; set; }
+        public string Winery { get; set; }
+        public string Name { get; set; }
+        public string Vintage { get; set; }
+        public string Price_Public { get; set; }
+        public string Price_WC { get; set; }
+        public string Price_Case_Pub { get; set; }
+        public string Price_Case_WC { get; set; }
+        public string Price_Sale_Pub { get; set; }
+        public string Price_Sale_WC { get; set; }
+        public string Flavor_Notes { get; set; }
+        public string Tasting_Notes { get; set; }
+        public string Type { get; set; }
+        public string Varietal { get; set; }
+        public string Active { get; set; }
+        public string Wine_Maker { get; set; }
+        public string Region { get; set; }
+        public string Country { get; set; }
+        public string Website { get; set; }
+        public string Reviewer { get; set; }
+        public string Rating { get; set; }
+        public string Image_Location { get; set; }
+        public string Tasting_Date { get; set; }
+        public string Food_Pairing { get; set; }
+        public string Composition { get; set; }
+        public string Alcohol { get; set; }
+        public string Aging { get; set; }
+
+    }
+
+
 
     public class Tag
     {
@@ -84,21 +123,1075 @@ namespace DataExtractor.Controllers
         public QUERYRESULT QUERYRESULT { get; set; }
     }
 
+    public class WineDetail
+    {
+        public string WineryName = string.Empty;
+        public string TableName = string.Empty;
+        public string FilePath = string.Empty;
+    }
+
 
     public class HomeController : Controller
     {
-        // GET: Home
         public async Task<ActionResult> Index()
         {
+            List<WineDetail> Details = new List<WineDetail>() {
+                new WineDetail{
+                    WineryName = "Buena Vista Winery",
+                    TableName = "Wine_BuenaVista",
+                    FilePath = "~/Content/html/buenaVista.html"
+                },
+                new WineDetail{
+                    WineryName = "Bouchard Aine & Fils",
+        TableName = "Wine_BouchardAine",
+        FilePath = "~/Content/html/Bouchard.html"
+                },
+                 new WineDetail{
 
-            unesco();
+        WineryName = "Deloach Vineyards",
+        TableName = "Wine_Deloach",
+        FilePath = "~/Content/html/Deloach.html"
+                },/*skip*/
+                new WineDetail{
+                            WineryName = "Domaine De La Vougeraie",
+        TableName = "Wine_Domaine",
+        FilePath = "~/Content/html/Domaine.html"
+                }, new WineDetail{
+                    WineryName = "Frenchie winery",
+        TableName = "Wine_Frenchie",
+        FilePath = "~/Content/html/frenchie.html"
+
+                }, new WineDetail{
+                    WineryName = "JCB by Jean Charles Boisset",
+        TableName = "Wine_JCB",
+        FilePath = "~/Content/html/jcb.html"
+
+                }, new WineDetail{
+                    WineryName = "Jean-Claude Boisset",
+        TableName = "Wine_JeanClaude",
+        FilePath = "~/Content/html/JeanClaude.html"
+
+                }, new WineDetail{
+                    WineryName = "Lockwood Vineyard",
+        TableName = "Wine_lockwood",
+        FilePath = "~/Content/html/lockwood.html"
+
+                }, new WineDetail{WineryName = "Louis Bouillot",
+        TableName = "Wine_Bouillot",
+        FilePath = "~/Content/html/Bouillot.html"
+                }, new WineDetail{
+                    WineryName = "LVE",
+        TableName = "Wine_LVE",
+        FilePath = "~/Content/html/LVE.html"
+
+                },
+                 new WineDetail{
+                     WineryName = "Lyeth",
+        TableName = "Wine_Lyeth",
+        FilePath = "~/Content/html/Lyeth.html"
+
+                },
+
+         new WineDetail{
+
+        WineryName = "Napa Valley Raymond",
+        TableName = "Wine_Raymond",
+        FilePath = "~/Content/html/Raymond.html"
+
+                },
+ new WineDetail{
+     WineryName = "Wattle Creek Winery",
+        TableName = "Wine_wattle",
+        FilePath = "~/Content/html/wattle.html"
+
+                },
+ new WineDetail{WineryName = "Bouachon",
+        TableName = "Wine_Bouachon",
+        FilePath = "~/Content/html/Bouachon.html"
+
+
+                },
+            };
+            foreach (var element in Details.Skip(3))
+            {
+                WineReader(element);
+            }
             return View();
+        }
 
+        public async Task<string> GetHtml(string element)
+        {
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(element)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        return await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+
+        public async Task<Wine> ReadFromHtml(WineDetail details, string result)
+        {
+            Wine wine = new Wine();
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(result);
+            wine.Winery_Number = "44";
+            wine.Winery = details.WineryName;
+            var document = htmlDoc.DocumentNode;
+            try
+            {
+                var list = document.QuerySelectorAll("h2").Where(x => x.FirstChild.Name == "div").First();
+                wine.Name = list.InnerText.Trim();
+                wine.Vintage = list.FirstChild.InnerText.Trim();
+            }
+            catch (Exception ex)
+            {
+            }
+
+            try
+            {
+                wine.Price_Public = document.QuerySelectorAll(".price--retail").First().InnerText;
+                double price = double.Parse(wine.Price_Public.Split('$')[1].Trim());
+                wine.Price_WC = (price - (price * 0.1)).ToString();
+                wine.Price_Case_Pub = (price * 12).ToString();
+                wine.Price_Case_WC = ((double.Parse(wine.Price_WC) * 12)).ToString();
+                wine.Price_WC = "$" + wine.Price_WC;
+                wine.Price_Case_Pub = "$" + wine.Price_Case_Pub;
+                wine.Price_Case_WC = "$" + wine.Price_Case_WC;
+                wine.Price_Sale_Pub = string.Empty;
+                wine.Price_Sale_WC = string.Empty;
+            }
+            catch (Exception ex)
+            {
+            }
+
+            try
+            {
+                var description = document.QuerySelectorAll(".field-wrapper").Where(x => x.FirstChild.Name == "p").First().FirstChild.InnerText.Trim();
+                wine.Flavor_Notes = description;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+
+            try
+            {
+                var Testing_Notes_Element = document.QuerySelectorAll("#panel1").First();
+                string Testing_Notes = string.Empty;
+                foreach (var k in Testing_Notes_Element.ChildNodes.Where(x => x.Name.Trim() == "div"))
+                {
+                    Testing_Notes += k.QuerySelectorAll(".field-label").First().InnerText.Trim();
+
+                    try
+                    {
+                        Testing_Notes += "   " + k.QuerySelectorAll("p").First().InnerText.Trim() + ";";
+                    }
+                    catch (Exception ex)
+                    {
+                        Testing_Notes += "   " + k.QuerySelectorAll("div").Last().InnerText.Trim() + ";";
+                    }
+
+                }
+                wine.Tasting_Notes = Testing_Notes;
+            }
+            catch (Exception ex)
+            {
+            }
+
+            wine.Type = "Red";
+
+            try
+            {
+                var Veriatal = document.QuerySelectorAll(".descriptors").First().InnerText.Trim();
+                wine.Varietal = Veriatal;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            wine.Active = "Yes";
+            wine.Wine_Maker = string.Empty;
+            wine.Region = "River";
+            wine.Country = "USA";
+            wine.Website = "www.boissetcollection.com";
+            wine.Reviewer = string.Empty;
+            wine.Rating = string.Empty;
+
+
+            try
+            {
+                var winery_Image = document.QuerySelectorAll(".field-wrapper").Where(x => x.FirstChild.Name == "img").First().FirstChild.Attributes["src"].Value;//.First().Attributes["src"].ToString();
+                wine.Image_Location = winery_Image;
+
+            }
+            catch (Exception ex)
+            {
+            }
+
+
+            wine.Tasting_Date = string.Empty;
+
+            try
+            {
+                var Food_Pairing_Element = document.QuerySelectorAll("#panel4").First().ChildNodes.Where(x => x.Name.Trim() == "div");
+                string Food_Pairing = string.Empty;
+                foreach (var k in Food_Pairing_Element)
+                {
+                    Food_Pairing += k.QuerySelectorAll(".field-label").First().InnerText.Trim();
+
+                    Food_Pairing += "   " + k.QuerySelectorAll(".textformatter-list").First().InnerText.Trim() + ";";
+
+                }
+                wine.Food_Pairing = Food_Pairing;
+            }
+            catch (Exception ex)
+            {
+            }
+
+
+            wine.Composition = $"100% {wine.Vintage}";
+
+            try
+            {
+                string MonthInBarrel = string.Empty;
+                string OriginOfOak = string.Empty;
+                string Tech_Notes = string.Empty;
+                string Alcohal = string.Empty;
+                var Tech_Notes_Element = document.QuerySelectorAll("#panel3").First().ChildNodes.Where(x => x.Name.Trim() == "div").First().FirstChild.QuerySelectorAll("li").ToList();
+                int age_check = 0;
+                foreach (var k in Tech_Notes_Element)
+                {
+                    string[] SplitedString = k.InnerText.Trim().Split(':').Select(x => x.Trim()).ToArray();
+
+                    if (SplitedString[0] == "Alcohol")
+                    {
+                        Alcohal = SplitedString[1];
+                    }
+
+                    if (SplitedString[0] == "Months in Barrel")
+                    {
+                        MonthInBarrel = SplitedString[1];
+                        age_check = 1;
+                    }
+
+                    if (SplitedString[0] == "Origin of Oak")
+                    {
+                        OriginOfOak = SplitedString[1];
+                        age_check = 1;
+                    }
+
+                    if (SplitedString[0] == "Aged")
+                    {
+
+                        OriginOfOak = SplitedString[1];
+                        age_check = 2;
+                    }
+
+                    if (SplitedString[0] == "Aging")
+                    {
+                        age_check = 3;
+                        foreach (var element in k.ChildNodes.Where(x => x.Name.Trim() == "ul").First().ChildNodes)
+                        {
+                            if (element.Name == "li")
+                            {
+                                OriginOfOak = element.InnerText.Trim() + ";";
+
+                            }
+                        }
+                    }
+
+                }
+
+                string AgingString = string.Empty;
+                if (age_check == 1)
+                {
+                    AgingString = $"{MonthInBarrel} months in {OriginOfOak} Oak";
+                }
+                else if (age_check == 2)
+                {
+                    AgingString = OriginOfOak;
+                }
+                else if (age_check == 3)
+                {
+
+                    AgingString = OriginOfOak;
+                }
+
+                wine.Alcohol = Alcohal;
+                wine.Aging = AgingString;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+            return wine;
+        }
+
+        public async void WineReader(WineDetail Details)
+        {
+            int id = 1;
+            using (StreamReader r = new StreamReader(Server.MapPath(Details.FilePath)))
+            {
+                string html = r.ReadToEnd();
+                List<string> Urls = html.Split(new string[] { "about=" }, StringSplitOptions.None).ToList().Skip(1).Select(x => "https://my.boissetcollection.com" + x.Split('\"')[1]).ToList();
+                string result = string.Empty;
+                foreach (var element in Urls)
+                {
+                    result = await GetHtml(element);
+                    Wine wine = await ReadFromHtml(Details, result);
+                    wine.Key = id.ToString();
+                    id++;
+
+                    foreach (var prop in wine.GetType().GetProperties())
+                    {
+                        if (prop.GetValue(wine) == null)
+                        {
+                            prop.SetValue(wine, "");
+                        }
+                    }
+
+                    foreach (var prop in wine.GetType().GetProperties())
+                    {
+                        prop.SetValue(wine, prop.GetValue(wine).ToString().Replace("'", "''"));
+                    }
+
+                    InsertWine(Details, wine);
+                }
+            }
+        }
+
+
+        public void InsertWine(WineDetail details, Wine wine)
+        {
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=Wines;Integrated Security=True"))
+            {
+                con.Open();
+
+                string query = $@"
+INSERT INTO [dbo].[{details.TableName}]
+           ([Key]
+           ,[Winery_Number]
+           ,[Winery]
+           ,[Name]
+           ,[Vintage]
+           ,[Price_Public]
+           ,[Price_WC]
+           ,[Price_Case_Pub]
+           ,[Price_Case_WC]
+           ,[Price_Sale_Pub]
+           ,[Price_Sale_WC]
+           ,[Flavor_Notes]
+           ,[Tasting_Notes]
+           ,[Type]
+           ,[Varietal]
+           ,[Active]
+           ,[Wine_Maker]
+           ,[Region]
+           ,[Country]
+           ,[Website]
+           ,[Reviewer]
+           ,[Rating]
+           ,[Image_Location]
+           ,[Tasting_Date]
+           ,[Food_Pairing]
+           ,[Composition]
+           ,[Alcohol]
+           ,[Aging])
+     VALUES
+           ('{wine.Key}'
+           ,'{wine.Winery_Number}'
+           ,'{wine.Winery}'
+           ,'{wine.Name}'
+           ,'{wine.Vintage}'
+           ,'{wine.Price_Public}'
+           ,'{wine.Price_WC}'
+           ,'{wine.Price_Case_Pub}'
+           ,'{wine.Price_Case_WC}'
+           ,'{wine.Price_Sale_Pub}'
+           ,'{wine.Price_Sale_WC}'
+           ,'{wine.Flavor_Notes}'
+           ,'{wine.Tasting_Notes}'
+           ,'{wine.Type}'
+           ,'{wine.Varietal}'
+           ,'{wine.Active}'
+           ,'{wine.Wine_Maker}'
+           ,'{wine.Region}'
+           ,'{wine.Country}'
+           ,'{wine.Website}'
+           ,'{wine.Reviewer}'
+           ,'{wine.Rating}'
+           ,'{wine.Image_Location}'
+           ,'{wine.Tasting_Date}'
+           ,'{wine.Food_Pairing}'
+           ,'{wine.Composition}'
+           ,'{wine.Alcohol}'
+           ,'{wine.Aging}');
+
+";
+
+
+
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
 
         }
 
 
-        public async void unesco()
+
+
+
+    }
+}
+
+
+
+
+
+/*
+ 
+            public async Task<string> GetHtml(string element)
+        {
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(element)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        return await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+        }
+
+        public async Task<Wine> ReadFromHtml(string result)
+        {
+            Wine wine = new Wine();
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(result);
+            wine.Winery_Number = "44";
+            wine.Winery = "Deloach Vineyards";
+            var document = htmlDoc.DocumentNode;
+            try
+            {
+                var list = document.QuerySelectorAll("h2").Where(x => x.FirstChild.Name == "div").First();
+                wine.Name = list.InnerText.Trim();
+                wine.Vintage = list.FirstChild.InnerText.Trim();
+            }
+            catch (Exception ex)
+            {
+            }
+
+            try
+            {
+                wine.Price_Public = document.QuerySelectorAll(".price--retail").First().InnerText;
+                double price = double.Parse(wine.Price_Public.Split('$')[1].Trim());
+                wine.Price_WC = (price - (price * 0.1)).ToString();
+                wine.Price_Case_Pub = (price * 12).ToString();
+                wine.Price_Case_WC = ((double.Parse(wine.Price_WC) * 12)).ToString();
+                wine.Price_WC = "$" + wine.Price_WC;
+                wine.Price_Case_Pub = "$" + wine.Price_Case_Pub;
+                wine.Price_Case_WC = "$" + wine.Price_Case_WC;
+                wine.Price_Sale_Pub = string.Empty;
+                wine.Price_Sale_WC = string.Empty;
+            }
+            catch (Exception ex)
+            {
+            }
+
+            try
+            {
+                var description = document.QuerySelectorAll(".field-wrapper").Where(x => x.FirstChild.Name == "p").First().FirstChild.InnerText.Trim();
+                wine.Flavor_Notes = description;
+            }
+            catch (Exception ex)
+            {
+
+            }
+
+
+            try
+            {
+                var Testing_Notes_Element = document.QuerySelectorAll("#panel1").First();
+                string Testing_Notes = string.Empty;
+                foreach (var k in Testing_Notes_Element.ChildNodes.Where(x => x.Name.Trim() == "div"))
+                {
+                    Testing_Notes += k.QuerySelectorAll(".field-label").First().InnerText.Trim() + System.Environment.NewLine;
+
+                    try
+                    {
+                        Testing_Notes += k.QuerySelectorAll("p").First().InnerText.Trim() + ";" + System.Environment.NewLine;
+                    }
+                    catch (Exception ex)
+                    {
+                        Testing_Notes += k.QuerySelectorAll("div").Last().InnerText.Trim() + ";" + System.Environment.NewLine;
+                    }
+                    
+                }
+                wine.Tasting_Notes = Testing_Notes;
+            }
+            catch (Exception ex)
+            {
+            }
+
+            wine.Type = "Red";
+
+            try
+            {
+                var Veriatal = document.QuerySelectorAll(".descriptors").First().InnerText.Trim();
+                wine.Varietal = Veriatal;
+            }
+            catch (Exception ex)
+            {
+
+            }
+          
+            wine.Active = "Yes";
+            wine.Wine_Maker = string.Empty;
+            wine.Region = "River";
+            wine.Country = "USA";
+            wine.Website = "www.boissetcollection.com";
+            wine.Reviewer = string.Empty;
+            wine.Rating = string.Empty;
+
+
+            try {
+                var winery_Image = document.QuerySelectorAll(".field-wrapper").Where(x => x.FirstChild.Name == "img").First().FirstChild.Attributes["src"].Value;//.First().Attributes["src"].ToString();
+                wine.Image_Location = winery_Image;
+
+            }
+            catch (Exception ex)
+            {
+            }
+
+            
+            wine.Tasting_Date = string.Empty;
+
+            try
+            {
+                var Food_Pairing_Element = document.QuerySelectorAll("#panel4").First().ChildNodes.Where(x => x.Name.Trim() == "div");
+                string Food_Pairing = string.Empty;
+                foreach (var k in Food_Pairing_Element)
+                {
+                    Food_Pairing += k.QuerySelectorAll(".field-label").First().InnerText.Trim() + System.Environment.NewLine;
+
+                    Food_Pairing += k.QuerySelectorAll(".textformatter-list").First().InnerText.Trim() + ";" + System.Environment.NewLine;
+
+                }
+                wine.Food_Pairing = Food_Pairing;
+            }
+            catch (Exception ex)
+            {
+            }
+
+           
+            wine.Composition = $"100% {wine.Vintage}";
+
+            try
+            {
+                string MonthInBarrel = string.Empty;
+                string OriginOfOak = string.Empty;
+                string Tech_Notes = string.Empty;
+                string Alcohal = string.Empty;
+                var Tech_Notes_Element = document.QuerySelectorAll("#panel3").First().ChildNodes.Where(x => x.Name.Trim() == "div").First().FirstChild.QuerySelectorAll("li").ToList();
+                foreach (var k in Tech_Notes_Element)
+                {
+                    string[] SplitedString = k.InnerText.Trim().Split(':').Select(x => x.Trim()).ToArray();
+
+                    if (SplitedString[0] == "Alcohol")
+                    {
+                        Alcohal = SplitedString[1];
+                    }
+
+                    if (SplitedString[0] == "Months in Barrel")
+                    {
+                        MonthInBarrel = SplitedString[1];
+                    }
+
+                    if (SplitedString[0] == "Origin of Oak")
+                    {
+                        OriginOfOak = SplitedString[1];
+                    }
+
+                }
+
+                string AgingString = $"{MonthInBarrel} months in {OriginOfOak} Oak";
+                //Aging String Format = 15 months in French and Hungarian Oak
+                wine.Alcohol = Alcohal;
+                wine.Aging = AgingString;
+            }
+            catch (Exception ex)
+            {
+
+            }
+            
+            return wine;
+        }
+
+        public async void WineReader()
+        {
+            int id = 1;
+            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/html/deloach.html")))
+            {
+                string html = r.ReadToEnd();
+                List<string> Urls = html.Split(new string[] { "about=" }, StringSplitOptions.None).ToList().Skip(1).Select(x=> "https://my.boissetcollection.com" + x.Split('\"')[1] ).ToList();
+                string result = string.Empty;
+                foreach (var element in Urls)
+                {
+                    result = await GetHtml(element);
+                    Wine wine = await ReadFromHtml(result);
+                    wine.Key= id.ToString();
+                    id++;
+
+                    foreach (var prop in wine.GetType().GetProperties())
+                    {
+                        if (prop.GetValue(wine) == null)
+                        {
+                            prop.SetValue(wine, "");
+                        }
+                    }
+
+                    foreach (var prop in wine.GetType().GetProperties())
+                    {
+                        prop.SetValue(wine, prop.GetValue(wine).ToString().Replace("'", "''"));
+                    }
+
+                    InsertWine(wine);
+                }
+            }
+        }
+
+
+        public void InsertWine(Wine wine)
+        {
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=Wines;Integrated Security=True"))
+            {
+                con.Open();
+
+                string query = $@"
+INSERT INTO [dbo].[Wine_Deloach]
+           ([Key]
+           ,[Winery_Number]
+           ,[Winery]
+           ,[Name]
+           ,[Vintage]
+           ,[Price_Public]
+           ,[Price_WC]
+           ,[Price_Case_Pub]
+           ,[Price_Case_WC]
+           ,[Price_Sale_Pub]
+           ,[Price_Sale_WC]
+           ,[Flavor_Notes]
+           ,[Tasting_Notes]
+           ,[Type]
+           ,[Varietal]
+           ,[Active]
+           ,[Wine_Maker]
+           ,[Region]
+           ,[Country]
+           ,[Website]
+           ,[Reviewer]
+           ,[Rating]
+           ,[Image_Location]
+           ,[Tasting_Date]
+           ,[Food_Pairing]
+           ,[Composition]
+           ,[Alcohol]
+           ,[Aging])
+     VALUES
+           ('{wine.Key}'
+           ,'{wine.Winery_Number}'
+           ,'{wine.Winery}'
+           ,'{wine.Name}'
+           ,'{wine.Vintage}'
+           ,'{wine.Price_Public}'
+           ,'{wine.Price_WC}'
+           ,'{wine.Price_Case_Pub}'
+           ,'{wine.Price_Case_WC}'
+           ,'{wine.Price_Sale_Pub}'
+           ,'{wine.Price_Sale_WC}'
+           ,'{wine.Flavor_Notes}'
+           ,'{wine.Tasting_Notes}'
+           ,'{wine.Type}'
+           ,'{wine.Varietal}'
+           ,'{wine.Active}'
+           ,'{wine.Wine_Maker}'
+           ,'{wine.Region}'
+           ,'{wine.Country}'
+           ,'{wine.Website}'
+           ,'{wine.Reviewer}'
+           ,'{wine.Rating}'
+           ,'{wine.Image_Location}'
+           ,'{wine.Tasting_Date}'
+           ,'{wine.Food_Pairing}'
+           ,'{wine.Composition}'
+           ,'{wine.Alcohol}'
+           ,'{wine.Aging}');
+
+";
+
+
+
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+
+        }
+
+     */
+
+
+
+
+
+/*
+
+    public async void Hydro()
+    {
+        string result = string.Empty;
+        List<string> HtmlLinks = new List<string>();
+        List<string> Links = new List<string>();
+        List<RequiredFormat> format = new List<RequiredFormat>();
+
+        RootObject items = new RootObject();
+
+        using (StreamReader r = new StreamReader(Server.MapPath("~/Content/hydro.json")))
+        {
+            string json = r.ReadToEnd();
+            items = JsonConvert.DeserializeObject<RootObject>(json);
+        }
+        //3045 - duplicate
+        items.places = items.places.Skip(4783).ToList();
+        foreach (var element in items.places)
+        {
+            RequiredFormat Obj = new RequiredFormat();
+            Obj.Name = element.title;
+            Obj.Lat = element.latitude.ToString();
+            Obj.Lon = element.longitude.ToString();
+
+            string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
+
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+
+            result = result.Split(new string[] { "Power Capacity" }, StringSplitOptions.None).Last();
+
+            var index = result.IndexOf("<");
+            result = result.Substring(1, index - 1).Trim();
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
+            {
+                con.Open();
+                string query = $"INSERT INTO HydroEnergyCamp (Title, Lat,Long, PowerCapacity) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+            //Thread.Sleep(3000);
+        }
+    }
+
+
+
+
+    public async void Aluminum()
+    {
+        string result = string.Empty;
+        List<string> HtmlLinks = new List<string>();
+        List<string> Links = new List<string>();
+        List<RequiredFormat> format = new List<RequiredFormat>();
+
+        RootObject items = new RootObject();
+
+        using (StreamReader r = new StreamReader(Server.MapPath("~/Content/aluminum.json")))
+        {
+            string json = r.ReadToEnd();
+            items = JsonConvert.DeserializeObject<RootObject>(json);
+        }
+
+        foreach (var element in items.places)
+        {
+            RequiredFormat Obj = new RequiredFormat();
+            Obj.Name = element.title;
+            Obj.Lat = element.latitude.ToString();
+            Obj.Lon = element.longitude.ToString();
+
+            string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
+
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+
+            result = result.Split(new string[] { "Annual Production" }, StringSplitOptions.None).Last();
+
+            var index = result.IndexOf("<");
+            result = result.Substring(1, index - 1).Trim();
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
+            {
+                con.Open();
+                string query = $"INSERT INTO AluminumMiningCamp (Title, Lat,Long, AnnualProduction) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+            //Thread.Sleep(3000);
+        }
+    }
+
+
+
+
+    public async void Platinum()
+    {
+        string result = string.Empty;
+        List<string> HtmlLinks = new List<string>();
+        List<string> Links = new List<string>();
+        List<RequiredFormat> format = new List<RequiredFormat>();
+
+        RootObject items = new RootObject();
+
+        using (StreamReader r = new StreamReader(Server.MapPath("~/Content/Platinum.json")))
+        {
+            string json = r.ReadToEnd();
+            items = JsonConvert.DeserializeObject<RootObject>(json);
+        }
+
+        foreach (var element in items.places)
+        {
+            RequiredFormat Obj = new RequiredFormat();
+            Obj.Name = element.title;
+            Obj.Lat = element.latitude.ToString();
+            Obj.Lon = element.longitude.ToString();
+
+            string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
+
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+
+            result = result.Split(new string[] { "Annual Production" }, StringSplitOptions.None).Last();
+
+            var index = result.IndexOf("<");
+            result = result.Substring(1, index - 1).Trim();
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
+            {
+                con.Open();
+                string query = $"INSERT INTO PlatinumMiningCamp (Title, Lat,Long, AnnualProduction) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+            //Thread.Sleep(3000);
+        }
+    }
+
+
+
+
+    public async void WorldOilRefineries()
+    {
+        string result = string.Empty;
+        List<string> HtmlLinks = new List<string>();
+        List<string> Links = new List<string>();
+        List<RequiredFormat> format = new List<RequiredFormat>();
+
+        RootObject items = new RootObject();
+
+        using (StreamReader r = new StreamReader(Server.MapPath("~/Content/Oil.json")))
+        {
+            string json = r.ReadToEnd();
+            items = JsonConvert.DeserializeObject<RootObject>(json);
+        }
+
+        foreach (var element in items.places)
+        {
+            RequiredFormat Obj = new RequiredFormat();
+            Obj.Name = element.title;
+            Obj.Lat = element.latitude.ToString();
+            Obj.Lon = element.longitude.ToString();
+
+            string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
+
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+
+            result = result.Split(new string[] { "Installed Capacity" }, StringSplitOptions.None).Last();
+
+            var index = result.IndexOf("<");
+            result = result.Substring(1, index - 1).Trim();
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
+            {
+                con.Open();
+                string query = $"INSERT INTO WorldOilRefineriesMap (Title, Lat,Long, InstalledCapacity) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+
+            Thread.Sleep(3000);
+        }
+    }
+
+
+
+
+
+
+    public async void WorldCopperMiningCamp()
+    {
+        string result = string.Empty;
+        List<string> HtmlLinks = new List<string>();
+        List<string> Links = new List<string>();
+        List<RequiredFormat> format = new List<RequiredFormat>();
+
+        RootObject items = new RootObject();
+
+        using (StreamReader r = new StreamReader(Server.MapPath("~/Content/jsondata.json")))
+        {
+            string json = r.ReadToEnd();
+            items = JsonConvert.DeserializeObject<RootObject>(json);
+        }
+
+        foreach (var element in items.places)
+        {
+            RequiredFormat Obj = new RequiredFormat();
+            Obj.Name = element.title;
+            Obj.Lat = element.latitude.ToString();
+            Obj.Lon = element.longitude.ToString();
+
+            string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
+
+            HttpClient _HttpClient = new HttpClient();
+            using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
+            {
+                request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+                request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+                request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+                using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+                {
+                    response.EnsureSuccessStatusCode();
+                    using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                    using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
+                    using (var streamReader = new StreamReader(decompressedStream))
+                    {
+                        result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
+                    }
+                }
+            }
+
+            result = result.Split(new string[] { "Annual Production" }, StringSplitOptions.None).Last();
+
+            var index = result.IndexOf("<");
+            result = result.Substring(1, index - 1).Trim();
+            using (SqlConnection con = new SqlConnection(@"Data Source=LAPTOP-ROUF\LOCAL2016;Initial Catalog=AnnualProduction;Integrated Security=True"))
+            {
+                con.Open();
+                string query = $"INSERT INTO Records (Title, Lat,Long, AnnualProduction) VALUES ('{Obj.Name}','{Obj.Lat}','{Obj.Lon}','{result}')";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+            Thread.Sleep(5000);
+        }
+    }
+
+
+
+    public async void unesco()
         {
             string result = string.Empty;
             List<string> HtmlLinks = new List<string>();
@@ -175,321 +1268,4 @@ namespace DataExtractor.Controllers
         }
 
 
-
-        public async void Hydro()
-        {
-            string result = string.Empty;
-            List<string> HtmlLinks = new List<string>();
-            List<string> Links = new List<string>();
-            List<RequiredFormat> format = new List<RequiredFormat>();
-
-            RootObject items = new RootObject();
-
-            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/hydro.json")))
-            {
-                string json = r.ReadToEnd();
-                items = JsonConvert.DeserializeObject<RootObject>(json);
-            }
-            //3045 - duplicate
-            items.places = items.places.Skip(4783).ToList();
-            foreach (var element in items.places)
-            {
-                RequiredFormat Obj = new RequiredFormat();
-                Obj.Name = element.title;
-                Obj.Lat = element.latitude.ToString();
-                Obj.Lon = element.longitude.ToString();
-
-                string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
-
-                HttpClient _HttpClient = new HttpClient();
-                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
-                {
-                    request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
-                    request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
-                    request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
-                    request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
-
-                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                        using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
-                        using (var streamReader = new StreamReader(decompressedStream))
-                        {
-                            result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                result = result.Split(new string[] { "Power Capacity" }, StringSplitOptions.None).Last();
-
-                var index = result.IndexOf("<");
-                result = result.Substring(1, index - 1).Trim();
-                using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
-                {
-                    con.Open();
-                    string query = $"INSERT INTO HydroEnergyCamp (Title, Lat,Long, PowerCapacity) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.ExecuteNonQuery();
-                    con.Close();
-                }
-                //Thread.Sleep(3000);
-            }
-        }
-
-
-
-
-        public async void Aluminum()
-        {
-            string result = string.Empty;
-            List<string> HtmlLinks = new List<string>();
-            List<string> Links = new List<string>();
-            List<RequiredFormat> format = new List<RequiredFormat>();
-
-            RootObject items = new RootObject();
-
-            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/aluminum.json")))
-            {
-                string json = r.ReadToEnd();
-                items = JsonConvert.DeserializeObject<RootObject>(json);
-            }
-
-            foreach (var element in items.places)
-            {
-                RequiredFormat Obj = new RequiredFormat();
-                Obj.Name = element.title;
-                Obj.Lat = element.latitude.ToString();
-                Obj.Lon = element.longitude.ToString();
-
-                string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
-
-                HttpClient _HttpClient = new HttpClient();
-                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
-                {
-                    request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
-                    request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
-                    request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
-                    request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
-
-                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                        using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
-                        using (var streamReader = new StreamReader(decompressedStream))
-                        {
-                            result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                result = result.Split(new string[] { "Annual Production" }, StringSplitOptions.None).Last();
-
-                var index = result.IndexOf("<");
-                result = result.Substring(1, index - 1).Trim();
-                using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
-                {
-                    con.Open();
-                    string query = $"INSERT INTO AluminumMiningCamp (Title, Lat,Long, AnnualProduction) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.ExecuteNonQuery();
-                    con.Close();
-                }
-                //Thread.Sleep(3000);
-            }
-        }
-
-
-
-
-        public async void Platinum()
-        {
-            string result = string.Empty;
-            List<string> HtmlLinks = new List<string>();
-            List<string> Links = new List<string>();
-            List<RequiredFormat> format = new List<RequiredFormat>();
-
-            RootObject items = new RootObject();
-
-            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/Platinum.json")))
-            {
-                string json = r.ReadToEnd();
-                items = JsonConvert.DeserializeObject<RootObject>(json);
-            }
-
-            foreach (var element in items.places)
-            {
-                RequiredFormat Obj = new RequiredFormat();
-                Obj.Name = element.title;
-                Obj.Lat = element.latitude.ToString();
-                Obj.Lon = element.longitude.ToString();
-
-                string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
-
-                HttpClient _HttpClient = new HttpClient();
-                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
-                {
-                    request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
-                    request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
-                    request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
-                    request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
-
-                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                        using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
-                        using (var streamReader = new StreamReader(decompressedStream))
-                        {
-                            result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                result = result.Split(new string[] { "Annual Production" }, StringSplitOptions.None).Last();
-
-                var index = result.IndexOf("<");
-                result = result.Substring(1, index - 1).Trim();
-                using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
-                {
-                    con.Open();
-                    string query = $"INSERT INTO PlatinumMiningCamp (Title, Lat,Long, AnnualProduction) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.ExecuteNonQuery();
-                    con.Close();
-                }
-                //Thread.Sleep(3000);
-            }
-        }
-
-        
-
-
-        public async void WorldOilRefineries()
-        {
-            string result = string.Empty;
-            List<string> HtmlLinks = new List<string>();
-            List<string> Links = new List<string>();
-            List<RequiredFormat> format = new List<RequiredFormat>();
-
-            RootObject items = new RootObject();
-
-            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/Oil.json")))
-            {
-                string json = r.ReadToEnd();
-                items = JsonConvert.DeserializeObject<RootObject>(json);
-            }
-
-            foreach (var element in items.places)
-            {
-                RequiredFormat Obj = new RequiredFormat();
-                Obj.Name = element.title;
-                Obj.Lat = element.latitude.ToString();
-                Obj.Lon = element.longitude.ToString();
-
-                string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
-
-                HttpClient _HttpClient = new HttpClient();
-                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
-                {
-                    request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
-                    request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
-                    request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
-                    request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
-
-                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                        using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
-                        using (var streamReader = new StreamReader(decompressedStream))
-                        {
-                            result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                result = result.Split(new string[] { "Installed Capacity" }, StringSplitOptions.None).Last();
-
-                var index = result.IndexOf("<");
-                result = result.Substring(1, index - 1).Trim();
-                using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=AnnualProduction;Integrated Security=True"))
-                {
-                    con.Open();
-                    string query = $"INSERT INTO WorldOilRefineriesMap (Title, Lat,Long, InstalledCapacity) VALUES ('{Obj.Name.Replace("'", "''")}','{Obj.Lat.Replace("'", "''")}','{Obj.Lon.Replace("'", "''")}','{result.Replace("'", "''")}')";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.ExecuteNonQuery();
-                    con.Close();
-                }
-            
-                Thread.Sleep(3000);
-            }
-        }
-
-
-
-
-
-
-        public async void WorldCopperMiningCamp()
-        {
-            string result = string.Empty;
-            List<string> HtmlLinks = new List<string>();
-            List<string> Links = new List<string>();
-            List<RequiredFormat> format = new List<RequiredFormat>();
-
-            RootObject items = new RootObject();
-
-            using (StreamReader r = new StreamReader(Server.MapPath("~/Content/jsondata.json")))
-            {
-                string json = r.ReadToEnd();
-                items = JsonConvert.DeserializeObject<RootObject>(json);
-            }
-
-            foreach (var element in items.places)
-            {
-                RequiredFormat Obj = new RequiredFormat();
-                Obj.Name = element.title;
-                Obj.Lat = element.latitude.ToString();
-                Obj.Lon = element.longitude.ToString();
-
-                string URL = "http://www.industryabout.com/" + element.html.Split('"')[1];
-
-                HttpClient _HttpClient = new HttpClient();
-                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(URL)))
-                {
-                    request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
-                    request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
-                    request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
-                    request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
-
-                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
-                    {
-                        response.EnsureSuccessStatusCode();
-                        using (var responseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                        using (var decompressedStream = new GZipStream(responseStream, CompressionMode.Decompress))
-                        using (var streamReader = new StreamReader(decompressedStream))
-                        {
-                            result = await streamReader.ReadToEndAsync().ConfigureAwait(false);
-                        }
-                    }
-                }
-
-                result = result.Split(new string[] { "Annual Production" }, StringSplitOptions.None).Last();
-
-                var index = result.IndexOf("<");
-                result = result.Substring(1, index - 1).Trim();
-                using (SqlConnection con = new SqlConnection(@"Data Source=LAPTOP-ROUF\LOCAL2016;Initial Catalog=AnnualProduction;Integrated Security=True"))
-                {
-                    con.Open();
-                    string query = $"INSERT INTO Records (Title, Lat,Long, AnnualProduction) VALUES ('{Obj.Name}','{Obj.Lat}','{Obj.Lon}','{result}')";
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.ExecuteNonQuery();
-                    con.Close();
-                }
-                Thread.Sleep(5000);
-            }
-        }
-    }
-}
+ */
