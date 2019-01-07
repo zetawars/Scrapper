@@ -154,3 +154,7 @@ C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Dia
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\HtmlAgilityPack.pdb
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\HtmlAgilityPack.xml
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Diagnostics.DiagnosticSource.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\phantomjs.exe
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\phantomjs-license.txt
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\WebDriver.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\WebDriver.xml

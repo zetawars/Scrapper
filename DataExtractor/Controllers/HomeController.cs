@@ -16,124 +16,21 @@ using System.Xml.Linq;
 using Dapper;
 using HtmlAgilityPack;
 using Fizzler.Systems.HtmlAgilityPack;
-
+using DataExtractor.Models;
+using System.Net.Sockets;
+using OpenQA.Selenium.Chrome;
 namespace DataExtractor.Controllers
 {
 
-    public class Wine
+    public class cadrempoli
     {
-
-        public string Key { get; set; }
-        public string Winery_Number { get; set; }
-        public string Winery { get; set; }
-        public string Name { get; set; }
-        public string Vintage { get; set; }
-        public string Price_Public { get; set; }
-        public string Price_WC { get; set; }
-        public string Price_Case_Pub { get; set; }
-        public string Price_Case_WC { get; set; }
-        public string Price_Sale_Pub { get; set; }
-        public string Price_Sale_WC { get; set; }
-        public string Flavor_Notes { get; set; }
-        public string Tasting_Notes { get; set; }
-        public string Type { get; set; }
-        public string Varietal { get; set; }
-        public string Active { get; set; }
-        public string Wine_Maker { get; set; }
-        public string Region { get; set; }
-        public string Country { get; set; }
-        public string Website { get; set; }
-        public string Reviewer { get; set; }
-        public string Rating { get; set; }
-        public string Image_Location { get; set; }
-        public string Tasting_Date { get; set; }
-        public string Food_Pairing { get; set; }
-        public string Composition { get; set; }
-        public string Alcohol { get; set; }
-        public string Aging { get; set; }
-
+        public string nom_recruteur { get; set; }
+        public string localisation { get; set; }
     }
-
-
-
-    public class Tag
-    {
-        public string title { get; set; }
-        public int lft { get; set; }
-    }
-
-    public class Place
-    {
-        public string title { get; set; }
-        public string category { get; set; }
-        public string category_lft { get; set; }
-        public string language { get; set; }
-        public List<Tag> tags { get; set; }
-        public double latitude { get; set; }
-        public double longitude { get; set; }
-        public object image { get; set; }
-        public string html { get; set; }
-        public string article_url { get; set; }
-        public string marker { get; set; }
-    }
-
-    public class RequiredFormat
-    {
-        public string Name { get; set; }
-        public string Lat { get; set; }
-        public string Lon { get; set; }
-        public string AnnualProduction { get; set; }
-
-    }
-
-
-    public class RequiredFormatUnesco
-    {
-        public string Lat { get; set; }
-        public string Long { get; set; }
-        public string Ref { get; set; }
-        public string Property { get; set; }
-        public string Name { get; set; }
-    }
-
-
-    public class RootObject
-    {
-        public List<Place> places { get; set; }
-    }
-
-
-
-    public class CENTROIDRESULT
-    {
-        public double LONGITUDE { get; set; }
-        public double LATITUDE { get; set; }
-    }
-
-    public class QUERYRESULT
-    {
-        public List<string> COLUMNS { get; set; }
-        public List<List<object>> DATA { get; set; }
-    }
-
-    public class RootObject2
-    {
-        public CENTROIDRESULT CENTROIDRESULT { get; set; }
-        public string HTMLRESULT { get; set; }
-        public QUERYRESULT QUERYRESULT { get; set; }
-    }
-
-    public class WineDetail
-    {
-        public string WineryName = string.Empty;
-        public string TableName = string.Empty;
-        public string FilePath = string.Empty;
-    }
-
 
     public class HomeController : Controller
     {
-        public async Task<ActionResult> Index()
+        public async Task<ActionResult> WineDetails()
         {
             List<WineDetail> Details = new List<WineDetail>() {
                 new WineDetail{
@@ -219,6 +116,191 @@ namespace DataExtractor.Controllers
             return View();
         }
 
+        public async Task<ActionResult> Index()
+        {
+
+            Reader();
+            return View();
+        }
+
+        public async void Reader()
+        {
+            using (StreamReader r = new StreamReader(Server.MapPath(Url.Content("~/Content/SearchJob.html"))))
+            {
+                string html = r.ReadToEnd();
+                var htmlDoc = new HtmlDocument();
+                htmlDoc.LoadHtml(html);
+                var document = htmlDoc.DocumentNode;
+
+                var elements = document.QuerySelectorAll(".job-card").ToList();
+
+                List<cadrempoli> cadrempolis = new List<cadrempoli>();
+                foreach (var el in elements)
+                {
+                    cadrempoli cadrempoli = new cadrempoli();
+
+                    try
+                    {
+                        string location = el.QuerySelectorAll("#location").First().InnerText;
+                        cadrempoli.localisation = location;
+
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                    
+                    try
+                    {
+                        string CompanyName = el.QuerySelectorAll("#companyName").First().InnerText;
+                        cadrempoli.nom_recruteur = CompanyName;
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+
+                    InsertToDB(cadrempoli);
+                    
+
+                }
+               
+            }
+
+            return;
+        }
+
+
+        //public async void Cadremploi()
+        //{
+        //    string url = "https://www.cadremploi.fr/emploi/liste_offres";
+        //    for (int i = 1; i <= 358; i++)
+        //    {
+        //        string newUrl = url + "?page=" + i;
+        //        string html = await GetHtml(url);
+        //        GetRequiredElementsFromHtml(html);
+        //    }
+        //    return;
+        //}
+
+        //public void GetRequiredElementsFromHtml(string html)
+        //{
+        //    var htmlDoc = new HtmlDocument();
+        //    htmlDoc.LoadHtml(html);
+
+
+
+        //    var document = htmlDoc.DocumentNode;
+        //    try
+        //    {
+        //        var list = document.QuerySelectorAll(".offre-card").ToList();
+        //        foreach (var element in list)
+        //        {
+        //            cadrempoli cadrempoli = new cadrempoli();
+        //            try
+        //            {
+        //                var no_recruteur = element.QuerySelectorAll(".nom-recruteur").First().InnerText;
+        //                cadrempoli.nom_recruteur = no_recruteur.ToString();
+
+
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //            }
+        //            try
+        //            {
+        //                var localisation= element.QuerySelectorAll(".localisation").First().InnerText;
+        //                cadrempoli.localisation = localisation;
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //            }
+        //            InsertToDB(cadrempoli);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //    }
+
+
+        //}
+
+        public void InsertToDB(cadrempoli cadrempoli)
+        {
+            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=Wines;Integrated Security=True"))
+            {
+                con.Open();
+                string query = $@"INSERT INTO [dbo].[cadrempoli2] ([nom_recruteur] ,[localisation]) VALUES ('{cadrempoli.nom_recruteur.Replace("'", "''")}' ,'{cadrempoli.localisation.Replace("'", "''")}')";
+                SqlCommand cmd = new SqlCommand(query, con);
+                cmd.ExecuteNonQuery();
+                con.Close();
+            }
+        }
+
+
+
+        //        public async void GetRemixJobs()
+        //        {
+
+        //            string Url = "https://remixjobs.com/api/employers?company-visible=1&order=hired&page=";
+        //            for (int i = 1; i <= 20; i++)
+        //            {
+        //                HttpClient _HttpClient = new HttpClient();
+        //                using (var request = new HttpRequestMessage(HttpMethod.Get, new Uri(Url + i)))
+        //                {
+        //                    //request.Headers.TryAddWithoutValidation("Accept", "text/html,application/xhtml+xml,application/xml");
+        //                    //request.Headers.TryAddWithoutValidation("Accept-Encoding", "gzip, deflate");
+        //                    //request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:19.0) Gecko/20100101 Firefox/19.0");
+        //                    //request.Headers.TryAddWithoutValidation("Accept-Charset", "ISO-8859-1");
+
+        //                    using (var response = await _HttpClient.SendAsync(request).ConfigureAwait(false))
+        //                    {
+        //                        var k = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        //                        RemixCompany companies = JsonConvert.DeserializeObject<RemixCompany>(k);
+
+        //                        foreach (var element in companies.employers)
+        //                        {
+        //                            InsertEmployer(element);
+        //                        }
+
+        //                    }
+        //                }
+
+
+        //            }
+        //            //int id = 1;
+
+        //            //using (StreamReader r = new StreamReader(Server.MapPath(Url.Content("~/Content/remixjobs.json"))))
+        //            //{
+        //            //    string html = r.ReadToEnd();
+        //            //    List<RemixJob> Jobs = JsonConvert.DeserializeObject<List<RemixJob>>(html);
+        //            //    foreach (var element in Jobs)
+        //            //    {
+        //            //        InsertJob(element);
+        //            //    }
+        //            //}
+        //        }
+
+
+
+        //        public void InsertEmployer(Employer employer)
+        //        {
+        //            using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=Wines;Integrated Security=True"))
+        //            {
+        //                con.Open();
+        //                string query = $@"
+        //INSERT INTO [dbo].[RemixCompanies]
+        //           ([CompanyName]
+        //           ,[JobsOuverts]
+        //           ,[Salaraies])
+        //     VALUES
+        //           ('{employer.company_name.Replace("'", "''")}' ,'{employer.jobs_count}' ,'{employer.company_count_employees}')";
+        //                SqlCommand cmd = new SqlCommand(query, con);
+        //                cmd.ExecuteNonQuery();
+        //                con.Close();
+        //            }
+
+
+        //        }
+
         public async Task<string> GetHtml(string element)
         {
             HttpClient _HttpClient = new HttpClient();
@@ -241,7 +323,6 @@ namespace DataExtractor.Controllers
                 }
             }
         }
-
         public async Task<Wine> ReadFromHtml(WineDetail details, string result)
         {
             Wine wine = new Wine();
@@ -442,7 +523,6 @@ namespace DataExtractor.Controllers
 
             return wine;
         }
-
         public async void WineReader(WineDetail Details)
         {
             int id = 1;
@@ -475,8 +555,6 @@ namespace DataExtractor.Controllers
                 }
             }
         }
-
-
         public void InsertWine(WineDetail details, Wine wine)
         {
             using (SqlConnection con = new SqlConnection(@"Data Source=(local);Initial Catalog=Wines;Integrated Security=True"))
@@ -553,13 +631,10 @@ INSERT INTO [dbo].[{details.TableName}]
             }
 
         }
-
-
-
-
-
     }
 }
+
+
 
 
 
