@@ -44,7 +44,6 @@ C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Webpages.Razor.xml
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Helpers.xml
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Web.Mvc.xml
-C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csprojResolveAssemblyReference.cache
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csproj.CoreCompileInputs.cache
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csproj.CopyComplete
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.dll
@@ -158,3 +157,7 @@ C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\phantomjs.
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\phantomjs-license.txt
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\WebDriver.dll
 C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\WebDriver.xml
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\obj\Debug\DataExtractor.csprojResolveAssemblyReference.cache
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Net.Http.Extensions.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Net.Http.Formatting.dll
+C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\bin\System.Net.Http.Primitives.dll
