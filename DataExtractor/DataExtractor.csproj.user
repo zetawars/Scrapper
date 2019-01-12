@@ -17,6 +17,10 @@
     <Controller_SelectedScaffolderCategoryPath>root/Controller</Controller_SelectedScaffolderCategoryPath>
     <WebStackScaffolding_ControllerDialogWidth>600</WebStackScaffolding_ControllerDialogWidth>
     <WebStackScaffolding_IsAsyncSelected>False</WebStackScaffolding_IsAsyncSelected>
+<<<<<<< HEAD
+=======
+    <LastActiveSolutionConfig>Debug|Any CPU</LastActiveSolutionConfig>
+>>>>>>> 5a722eb9b36691dab44e8022f936c26eff4945ea
     <ProjectView>ShowAllFiles</ProjectView>
   </PropertyGroup>
   <ProjectExtensions>
