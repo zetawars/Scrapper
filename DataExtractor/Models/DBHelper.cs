@@ -377,7 +377,14 @@ namespace System
                         var item = Activator.CreateInstance<T>();
                         foreach (var property in properties)
                         {
-                            DBReader(item, property, reader);
+                            try {
+                                DBReader(item, property, reader);
+                            }
+                            catch (Exception ex)
+                            {
+                                DBReader(item, property, reader);
+                            }
+                            
                         }
                         results.Add(item);
                     }

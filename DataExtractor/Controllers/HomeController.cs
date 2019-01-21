@@ -108,8 +108,22 @@ namespace DataExtractor.Controllers
         public string SubCategoryName { get; set; }
         public string SubCategoryURL { get; set; }
         public bool Processed { get; set; }
+        public int? SubCategoryID { get; set; }
     }
 
+
+    public class SKUPackagingPrice
+    {
+        [DontInsert][DontUpdate]
+        public int ID { get; set; }
+        public int ProductID { get; set; }
+        public string SKU { get; set; }
+        public double? Price { get; set; }
+        public string Packaging { get; set; }
+        public double? PricePerKG { get; set; }
+        public double? AmountInKG { get; set; }
+
+    }
 
 
     public class HomeController : Controller
@@ -118,7 +132,7 @@ namespace DataExtractor.Controllers
         private static IWebDriver webDriver;
         private static TimeSpan defaultWait = TimeSpan.FromSeconds(10);
         private static String targetUrl = "https://www.sigmaaldrich.com/catalog/product/mm/100126?lang=en&region=PK";
-        private static String driversDir = @"C:\Users\Zawar\source\repos\DataExtraction\Scrapper\DataExtractor\Drivers\";
+        private static String driversDir = @"C:\Users\Abdul Rouf\Documents\Visual Studio 2017\Projects\DataExtractor\DataExtractor\Drivers";
         public async Task<ActionResult> Categories()
         {
             List<ProductCategory> ProductCategories = new List<ProductCategory>();
@@ -127,6 +141,96 @@ namespace DataExtractor.Controllers
         }
 
         public async Task<ActionResult> Index()
+        {
+
+            string ExcelQuery = @"
+            SELECT 
+            C.CategoryName as ProductCategory ,
+            P.ID_Link,
+            P.name,
+            ISNULL(SKU.SKU,'-') as SKU_Packsize,
+            ISNULL(PCK.Packaging,'-') Packaging,
+            '-' as Volume,
+            '-' as Density,
+            ISNULL(PCK.AmountINKG,'-') as AmountINKG,
+            ISNULL(SKU.Price,'-') as Price, 
+            ISNULL(CAST(PCK.PricePerKG AS VARCHAR), '-') as PricePerKG,
+            ISNULL(P.Assay, '-') as Assay,
+            ISNULL(P.CASnumber, '-') as CASNumber, 
+            ISNULL(P.InChlkey, '-') as InChlkey,
+            ISNULL(P.Description, '-') as Description,
+            ISNULL(P.Biologicalsource, '-') as Biologicalsource,
+            ISNULL(p.Synonyms, '-') as Synonyms,
+            ISNULL(P.Linearformula,  '-') as Linearformula,
+            ISNULL(p.Molecularweight, '-') as Molecularweight, 
+            ISNULL(p.ECnumber, '-') as ECnumber,
+            ISNULL(p.Beilsteinnumber, '-') as Beilsteinnumber,
+            ISNULL(P.PubChemID, '-') as PubChemID,
+            P.ProductUrl
+            FROM Product P
+            INNER JOIN SubCategory S ON S.ID = P.SubCategoryID
+            INNER JOIN Category C ON C.ID = S.CategoryID
+            LEFT JOIN  Product_SKU SKU ON SKU.ProductID = P.ID
+            LEFT JOIN  Product_Packaging PCK ON PCK.Packaging like  '%' + SKU.SKU + '%' AND PCK.ProductID = SKU.ProductID
+            order by ProductCategory, S.SubCategoryName, P.name, SKU.SKU
+            ";
+
+
+            //List<SubCategory> SubCategories = DBHelper.GetList<SubCategory>().Where(x => x.Processed == false).ToList();
+            //ProcessSubCategories(SubCategories);
+            //await ExtractProductsFromSubCategories();
+            string PCKQuery = @"
+            SELECT SKU.*, PCK.ID, PCK.Packaging, PCK.PricePerKG, PCK.AmountINKG FROM Product P 
+            INNER JOIN  Product_SKU SKU ON SKU.ProductID = P.ID
+            INNER JOIN  Product_Packaging PCK ON PCK.Packaging like  '%' + SKU.SKU + '%'
+            ";
+
+
+
+            //ExtractProductInformation();
+            UpdateProductsPrices();
+            //await ExtractProductsFromSubCategories();
+            return View();
+        }
+
+        private async void ProcessSubCategories(List<SubCategory> subCategories)
+        {
+            foreach (var element in subCategories)
+            {
+
+                Dictionary<string, Product> dictionary = await ProductsPage(element.SubCategoryURL);
+                if (dictionary == null || dictionary.Count == 0)
+                {
+                    Dictionary<string, SubCategory> SubCategories = await ProductPageSubCategories(element); //new Dictionary<string, SubCategory>();
+
+                    foreach (var k in SubCategories)
+                    {
+                        DBHelper.Insert(k.Value);
+                    }
+
+                }
+                DBHelper.ExecuteQuery($"UPDATE SubCategory Set Processed = 1 Where ID = ${element.ID}");
+            }
+        }
+
+        private async Task ExtractProductsFromSubCategories()
+        {
+            List<SubCategory> subcategories = DBHelper.GetList<SubCategory>();
+            foreach (var s in subcategories)
+            {
+                Dictionary<string, Product> ProductsToBeProcessed = await ProductsPage(s.SubCategoryURL);
+                List<Product> ProcessedProducts = new List<Product>();
+                foreach (var element in ProductsToBeProcessed)
+                {
+                    Product p = element.Value;
+                    p.SubCategoryID = s.ID;
+                    p.ProductUrl = element.Key;
+                    DBHelper.Insert(p);
+                }
+            }
+        }
+
+        private void ExtractProductInformation()
         {
             List<Product> products = DBHelper.GetList<Product>().Where(x => x.Processed == false).ToList();
 
@@ -148,7 +252,7 @@ namespace DataExtractor.Controllers
                     }
                     foreach (var e in element.Packaging)
                     {
-                        string query = $"INSERT INTO Product_Packaging (ProductID , Packaging) VALUES ({element.ID}, '{element}');";
+                        string query = $"INSERT INTO Product_Packaging (ProductID , Packaging) VALUES ({element.ID}, '{e}');";
                         DBHelper.ExecuteQuery(query);
                     }
                     element.Processed = true;
@@ -160,58 +264,112 @@ namespace DataExtractor.Controllers
                 }
             }
             webDriver.Quit();
+        }
+
+        private static void UpdateProductsPrices()
+        {
+            string query = $@"
+            SELECT SKU.*, PCK.Packaging FROM Product P 
+            INNER JOIN  Product_SKU SKU ON SKU.ProductID = P.ID
+            LEFT JOIN  Product_Packaging PCK ON PCK.Packaging like  '%' + SKU.SKU + '%'
+            ";
+            List<SKUPackagingPrice> PackagingList = DBHelper.GetList<SKUPackagingPrice>(query);
+            //PackagingList = PackagingList.Where(x => x.ProductID == 7).ToList();
 
 
-            //List<SubCategory> subcategories = DBHelper.GetList<SubCategory>();
+            foreach (var element in PackagingList)
+            {
+                string PackagingString = element.Packaging;
+                if (!string.IsNullOrWhiteSpace(PackagingString))
+                {
+                    List<string> PackagingStringList = PackagingString.Split(' ').ToList();
+                    if (PackagingStringList[1].ToLower() == "kg")
+                    {
+                        double.TryParse(PackagingStringList[0], out double KGAmount);
+                        element.AmountInKG = KGAmount;
+                        element.PricePerKG = (element.Price * KGAmount);
+                    }
+                    else if (PackagingStringList[1].ToLower() == "g")
+                    {
+                        double.TryParse(PackagingStringList[0], out double GAmount);
+                        element.AmountInKG = GAmount / 1000;
+                        element.PricePerKG = (element.Price * (GAmount / 1000));
 
-            //foreach (var s in subcategories)
-            //{
-            //    Dictionary<string, Product> ProductsToBeProcessed = await ProductsPage(s.SubCategoryURL);
-            //    List<Product> ProcessedProducts = new List<Product>();
-            //    foreach (var element in ProductsToBeProcessed)
-            //    {
-            //        Product p = element.Value;
-            //        p.SubCategoryID = s.ID;
-            //        p.ProductUrl = element.Key;
-            //        DBHelper.Insert(p);
-            //    }
+                    }
+                    else if (PackagingStringList[1].ToLower() == "x")
+                    {
+
+                        if (PackagingStringList[3].ToLower() == "kg")
+                        {
+                            double.TryParse(PackagingStringList[0], out double FirstAmount);
+                            double.TryParse(PackagingStringList[2], out double SecondAmount);
+                            if (FirstAmount != 0 && SecondAmount != 0)
+                            {
+                                element.AmountInKG = FirstAmount * SecondAmount;
+                                element.PricePerKG = (element.Price * (FirstAmount * SecondAmount));
+                            }
+                        }
+                        else if (PackagingStringList[3].ToLower() == "g" || PackagingStringList[3].ToLower() == "gm")
+                        {
+                            double.TryParse(PackagingStringList[0], out double FirstAmount);
+                            double.TryParse(PackagingStringList[2], out double SecondAmount);
+                            if (FirstAmount != 0 && SecondAmount != 0)
+                            {
+                                element.AmountInKG = FirstAmount * SecondAmount;
+                                element.PricePerKG = (element.Price * (FirstAmount * SecondAmount / 1000));
+                            }
+                        }
+                    }
+
+                }
+                else
+                {
+                    List<string> SkuInfo = element.SKU.Split('-').ToList();
+                    if (SkuInfo.Count > 1)
+                    {
+                        string PackageSize = SkuInfo[1].Trim();
+
+                        if (PackageSize.ToLower().EndsWith("kg"))
+                        {
+                            var AmountINKG = PackageSize.Substring(0, PackageSize.Length - 2).ToString();
+                            element.AmountInKG = double.Parse(AmountINKG);
+                            element.PricePerKG = element.Price / (double)element.AmountInKG;
+                        }
+                        else if (PackageSize.ToLower().EndsWith("mg"))
+                        {
+                            var AmountINMG = PackageSize.Substring(0, PackageSize.Length - 2).ToString();
+                            element.AmountInKG =  double.Parse(AmountINMG) / ( 1000 * 1000 )  ;
+                            element.PricePerKG = element.Price / (double)element.AmountInKG;
+
+                        }
+                        else if (PackageSize.ToLower().EndsWith("g"))
+                        {
+                            try
+                            {
+                                var AmountING = PackageSize.Substring(0, PackageSize.Length - 1).ToString();
+                                element.AmountInKG = double.Parse(AmountING) / 1000;
+                                element.PricePerKG = element.Price / (double)element.AmountInKG;
+
+                            }
+                            catch (Exception ex)
+                            {
+                            }
+                        }
+
+                    }
+                }
+
+                
+            }
 
 
-            //    //ProductDetailPage(p, element.Key);
-            //    //InsertProduct(p);
-            //    //ProcessedProducts.Add(p);
+            
 
-            //}
+            foreach (var element in PackagingList.Where(x=>x.PricePerKG != null && x.AmountInKG != null))
+            {
+                DBHelper.ExecuteQuery($@"UPDATE Product_SKU SET PricePerKG = {element.PricePerKG}, AmountInKG = {element.AmountInKG} where ID = {element.ID}");
 
-
-            //foreach (var Category in ProductCategoriesToBeProcessed)
-            //{
-            //    List<SubCategory> SubCategories = new List<SubCategory>();
-            //    Dictionary<string, SubCategory> SubCategoriesToBeProcessed = await SubCategoryPage(Category.Key);
-            //    foreach (var SubCategory in SubCategoriesToBeProcessed)
-            //    {
-
-            //        Dictionary<string, Product> ProductsToBeProcessed = await ProductsPage(SubCategory.Key);
-            //        List<Product> ProcessedProducts = new List<Product>();
-            //        foreach (var element in ProductsToBeProcessed)
-            //        {
-            //            Product p = element.Value;
-            //            ProductDetailPage(p, element.Key);
-            //            ProcessedProducts.Add(p);
-            //        }
-            //        SubCategories.Add(new Controllers.SubCategory
-            //        {
-            //            Products = ProcessedProducts,
-            //            SubCategoryName = SubCategory.Value.SubCategoryName
-
-            //        });
-            //    }
-            //}
-
-
-            //   string subCategoryPage = await GetHtml(newUrl);
-            //   await ProcessSubCategoryPage(subCategoryPage, dich);
-            return View();
+            }
         }
 
         public void InsertProduct(Product p)
@@ -337,7 +495,47 @@ namespace DataExtractor.Controllers
 
 
 
-   
+        public async Task<Dictionary<string, SubCategory>> ProductPageSubCategories(SubCategory subCategory)
+        {
+            string html = await GetHtml(subCategory.SubCategoryURL);
+            var htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(html);
+            var document = htmlDoc.DocumentNode;
+            var opctable = document.QuerySelectorAll(".opcsectionlist li").ToList();
+
+            Dictionary<string, SubCategory> SubCategoryList = new Dictionary<string, SubCategory>();
+            
+            if (opctable != null)
+            {
+                foreach (var element in opctable)
+                {
+                    var a = element.QuerySelectorAll("a").FirstOrDefault();
+                    if (a != null)
+                    {
+                        if (a != null)
+                        {
+                            string SubCategoryLink = a.Attributes.Where(x => x.Name == "href").First().Value;
+                            string SubCategoryName = a.InnerText;
+                            SubCategoryList.Add(DefaultLink + SubCategoryLink, new SubCategory
+                            {
+                                SubCategoryName = SubCategoryName,
+                                SubCategoryURL = DefaultLink +  SubCategoryLink,
+                                CategoryID = subCategory.CategoryID,
+                                Processed = false,
+                                SubCategoryID = subCategory.ID
+                            });
+                        }
+                    }
+                }
+                
+            }
+            return SubCategoryList;
+        }
+
+
+
+
+
 
         public async void ProductDetailPage(Product p, string url)
         {
@@ -360,13 +558,13 @@ namespace DataExtractor.Controllers
                     var span = brand.QuerySelectorAll("span").FirstOrDefault();
                     if (span != null)
                     {
-                        p.ID_Link += " " + span.InnerHtml.Trim();
+                        p.ID_Link += " " + span.InnerText.Trim();
                     }
 
                     var h1 = brand.QuerySelectorAll("h1").FirstOrDefault();
                     if (h1 != null)
                     {
-                        p.name = h1.InnerHtml.Trim();
+                        p.name = h1.InnerText.Trim();
                     }
 
                     var h2s = brand.QuerySelectorAll("h2").ToList();
@@ -375,7 +573,7 @@ namespace DataExtractor.Controllers
                         var descriptionh2 = h2s.Where(x => x.Attributes.Where(y => y.Name == "itemprop" && y.Value == "description").ToList().Count > 0).FirstOrDefault();
                         if (descriptionh2 != null)
                         {
-                            p.Description = descriptionh2.InnerHtml.Trim();
+                            p.Description = descriptionh2.InnerText.Trim();
                         }
                     }
 
@@ -385,7 +583,7 @@ namespace DataExtractor.Controllers
                         var synlist = synonym.QuerySelectorAll("strong").FirstOrDefault();
                         if (synlist != null)
                         {
-                            p.Synonyms = synlist.InnerHtml.Trim();
+                            p.Synonyms = synlist.InnerText.Trim();
                         }
                     }
 
@@ -399,7 +597,7 @@ namespace DataExtractor.Controllers
                                 var a = ul_p.QuerySelectorAll("a").FirstOrDefault();
                                 if (a != null)
                                 {
-                                    p.CASnumber = a.InnerHtml.Trim();
+                                    p.CASnumber = a.InnerText.Trim();
                                 }
 
                             }
@@ -408,7 +606,7 @@ namespace DataExtractor.Controllers
                                 var a = ul_p.QuerySelectorAll("span").FirstOrDefault();
                                 if (a != null)
                                 {
-                                    p.Linearformula = a.InnerHtml.Trim();
+                                    p.Linearformula = a.InnerText.Trim();
                                 }
                             }
                             else if (ul_p.InnerHtml.Contains("Molecular Weight"))
@@ -416,7 +614,7 @@ namespace DataExtractor.Controllers
                                 var a = ul_p.QuerySelectorAll("span").FirstOrDefault();
                                 if (a != null)
                                 {
-                                    p.Molecularweight = a.InnerHtml.Trim();
+                                    p.Molecularweight = a.InnerText.Trim();
                                 }
                             }
                             else if (ul_p.InnerHtml.Contains("EC Number"))
@@ -424,7 +622,7 @@ namespace DataExtractor.Controllers
                                 var a = ul_p.QuerySelectorAll("a").FirstOrDefault();
                                 if (a != null)
                                 {
-                                    p.ECnumber = a.InnerHtml.Trim();
+                                    p.ECnumber = a.InnerText.Trim();
                                 }
 
                             }
@@ -433,7 +631,7 @@ namespace DataExtractor.Controllers
                                 var a = ul_p.QuerySelectorAll("span").FirstOrDefault();
                                 if (a != null)
                                 {
-                                    p.Beilsteinnumber = a.InnerHtml.Trim();
+                                    p.Beilsteinnumber = a.InnerText.Trim();
                                 }
 
                             }
@@ -442,7 +640,7 @@ namespace DataExtractor.Controllers
                                 var a = ul_p.QuerySelectorAll("a").FirstOrDefault();
                                 if (a != null)
                                 {
-                                    p.PubChemID = a.InnerHtml.Trim();
+                                    p.PubChemID = a.InnerText.Trim();
                                 }
 
                             }
@@ -456,7 +654,9 @@ namespace DataExtractor.Controllers
                 var SKUDiv = document.QuerySelectorAll("#pricingContainerMessage").FirstOrDefault();
                 if (SKUDiv != null)
                 {
-                    var trWithInfo = SKUDiv.QuerySelectorAll(".backordered").ToList();
+                    var trWithInfo = SKUDiv.QuerySelectorAll("tr.backordered").ToList();
+                    trWithInfo.AddRange(SKUDiv.QuerySelectorAll("tr.available").ToList());
+
                     if (trWithInfo != null)
                     {
                         foreach (var element in trWithInfo)
@@ -469,7 +669,7 @@ namespace DataExtractor.Controllers
                                 var sku_p = skuElement.QuerySelectorAll("p").FirstOrDefault();
                                 if (sku_p != null)
                                 {
-                                    sku = sku_p.InnerHtml.Trim();
+                                    sku = sku_p.InnerText.Trim();
                                 }
                             }
 
@@ -479,7 +679,7 @@ namespace DataExtractor.Controllers
                                 var price_p = priceElement.QuerySelectorAll("p").FirstOrDefault();
                                 if (price_p != null)
                                 {
-                                    price = price_p.InnerHtml.Trim();
+                                    price = price_p.InnerText.Trim();
                                 }
 
                             }
@@ -530,7 +730,7 @@ namespace DataExtractor.Controllers
                                         var righttd = tr.QuerySelectorAll("td").Last();
                                         if (righttd != null)
                                         {
-                                            string innertext = righttd.InnerHtml.Trim();
+                                            string innertext = righttd.InnerText.Trim();
                                             p.Packaging.Add(innertext);
                                         }
                                     }
@@ -653,34 +853,6 @@ namespace DataExtractor.Controllers
             var wait = new WebDriverWait(webDriver, defaultWait);
             wait.Until(d => (bool)(d as IJavaScriptExecutor).ExecuteScript("return jQuery.active == 0"));
         }
-
-
-
-
-
-
-
-
-        //public static async Task<string> LoadAndWaitForSelector(String url, String selector)
-        //{
-
-
-
-
-        //    var browser = await Puppeteer.LaunchAsync(new LaunchOptions
-        //    {
-        //        Headless = true,
-        //        ExecutablePath = @"c:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-        //    });
-        //    using (Page page = await browser.NewPageAsync())
-        //    {
-        //        await page.GoToAsync(url);
-        //        await page.WaitForSelectorAsync(selector);
-        //        return await page.GetContentAsync();
-        //    }
-        //}
-
-
 
     }
 }
