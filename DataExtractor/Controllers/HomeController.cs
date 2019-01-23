@@ -24,108 +24,6 @@ using OpenQA.Selenium.Support.UI;
 
 namespace DataExtractor.Controllers
 {
-   
-
-
-    public class ProductCategory
-    {
-        public string CategoryName { get; set; }
-        public List<ProductSubCategory> SubCategories { get; set; }
-
-    }
-
-    public class ProductSubCategory
-    {
-        public string SubCategoryName { get; set; }
-        public List<Product> Products { get; set; }
-    }
-
-    [Table("Product")]
-    public class Product
-    {
-        [DontInsert]
-        [DontUpdate]
-        public int ID { get; set; }
-
-        public int SubCategoryID { get; set; }
-        public string ID_Link { get; set; } 
-        public string name { get; set; }
-        [DontInsert]
-        [DontUpdate]
-        [DontLoad]
-        public List<SKU_PackSize> SKU_PackSize { get; set; }
-        [DontInsert]
-        [DontUpdate]
-        [DontLoad]
-        public List<string> Packaging { get; set; }
-        public string Volume { get; set; }
-        public string Density { get; set; }
-        public string AmountInKG { get; set; }
-        public string PricePerKG { get; set; }
-        public string Assay { get; set; }
-        public string CASnumber { get; set; }
-        public string InChlkey { get; set; }
-        public string Description { get; set; }
-        public string Biologicalsource { get; set; }
-        public string Synonyms { get; set; }
-        public string Linearformula { get; set; }
-        public string Molecularweight { get; set; }
-        public string ECnumber { get; set; }
-        public string Beilsteinnumber { get; set; }
-        public string PubChemID { get; set; }
-        public bool Processed { get; set; }
-        public string ProductUrl { get; set; }
-
-
-    }
-
-
-    public class SKU_PackSize
-    {
-        public string SKU { get; set; }
-        public string Price { get; set; }
-    }
-
-
-    [Table("Category")]
-    public class Category
-    {
-        [DontInsert][DontUpdate]
-        public int ID { get; set; }
-        public string CategoryName { get; set; }
-        public string CategoryURL { get; set; }
-        public bool Processed { get; set; }
-    }
-
-
-    [Table("SubCategory")]
-    public class SubCategory
-    {
-        [DontInsert]
-        [DontUpdate]
-        public int ID { get; set; }
-        public int CategoryID { get; set; }
-        public string SubCategoryName { get; set; }
-        public string SubCategoryURL { get; set; }
-        public bool Processed { get; set; }
-        public int? SubCategoryID { get; set; }
-    }
-
-
-    public class SKUPackagingPrice
-    {
-        [DontInsert][DontUpdate]
-        public int ID { get; set; }
-        public int ProductID { get; set; }
-        public string SKU { get; set; }
-        public double? Price { get; set; }
-        public string Packaging { get; set; }
-        public double? PricePerKG { get; set; }
-        public double? AmountInKG { get; set; }
-
-    }
-
-
     public class HomeController : Controller
     {
         public const string DefaultLink = "https://www.sigmaaldrich.com";
@@ -176,9 +74,9 @@ namespace DataExtractor.Controllers
             ";
 
 
-            //List<SubCategory> SubCategories = DBHelper.GetList<SubCategory>().Where(x => x.Processed == false).ToList();
-            //ProcessSubCategories(SubCategories);
-            //await ExtractProductsFromSubCategories();
+            List<SubCategory> SubCategories = DBHelper.GetList<SubCategory>().Where(x => x.Processed == false).ToList();
+            ProcessSubCategories(SubCategories);
+           // await ExtractProductsFromSubCategories();
             string PCKQuery = @"
             SELECT SKU.*, PCK.ID, PCK.Packaging, PCK.PricePerKG, PCK.AmountINKG FROM Product P 
             INNER JOIN  Product_SKU SKU ON SKU.ProductID = P.ID
@@ -188,10 +86,43 @@ namespace DataExtractor.Controllers
 
 
             //ExtractProductInformation();
-            UpdateProductsPrices();
+           // UpdateProductsPrices();
             //await ExtractProductsFromSubCategories();
             return View();
         }
+
+        public async void SubCategories()
+        {
+
+            List<Category> Categories = DBHelper.GetList<Category>().Where(x => x.Processed == false).ToList();
+
+            foreach (var element in Categories)
+            {
+
+                Dictionary<string, ProductSubCategory> subCategories = await SubCategoryPage(element.CategoryURL);
+
+                List<SubCategory> SubCategories = new List<SubCategory>();
+                foreach (var s in subCategories)
+                {
+                    SubCategories.Add(new SubCategory
+                    {
+                        CategoryID = element.ID,
+                        Processed = false,
+                        SubCategoryID = null,
+                        SubCategoryName = s.Value.SubCategoryName,
+                        SubCategoryURL = s.Key
+                    });
+                }
+
+                foreach (var s in SubCategories)
+                {
+                    DBHelper.Insert(s);
+                }
+            }
+
+        }
+
+
 
         private async void ProcessSubCategories(List<SubCategory> subCategories)
         {
@@ -208,6 +139,17 @@ namespace DataExtractor.Controllers
                         DBHelper.Insert(k.Value);
                     }
 
+                }
+                else
+                {
+
+                    foreach (var p in dictionary)
+                    {
+                        Product prod = p.Value;
+                        prod.SubCategoryID = element.ID;
+                        prod.ProductUrl = p.Key;
+                        DBHelper.Insert(prod);
+                    }
                 }
                 DBHelper.ExecuteQuery($"UPDATE SubCategory Set Processed = 1 Where ID = ${element.ID}");
             }

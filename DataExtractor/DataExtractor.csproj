@@ -212,7 +212,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="App_Start\RouteConfig.cs" />
+    <Compile Include="Controllers\Category.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\Product.cs" />
+    <Compile Include="Controllers\ProductCategory.cs" />
+    <Compile Include="Controllers\ProductSubCategory.cs" />
+    <Compile Include="Controllers\SKUPackagingPrice.cs" />
+    <Compile Include="Controllers\SKU_PackSize.cs" />
+    <Compile Include="Controllers\SubCategory.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
